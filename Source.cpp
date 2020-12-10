@@ -450,6 +450,7 @@ void test_64bit_bst(int N)
 
 int main() {
     
-    test_64bit_bst(1000000);
+    test_64bit_bst(100000);
+    test_64bit_xfast(100000);
     return 0;
 }
