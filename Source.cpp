@@ -1,3 +1,7 @@
+// Adapted from https://iq.opengenus.org/y-fast-trie/
+// I did not just copy and paste, but you might notice some
+// parts are similar, and some variable names are similar
+
 #include <iostream>
 #include <vector>
 #include <map>
@@ -23,6 +27,12 @@ struct Node
     uint64_t key = 0;
 };
 
+/////////////////////////////////////////////////////////////////////
+///
+///                     X-Fast Trie
+///
+/////////////////////////////////////////////////////////////////////
+
 class XFastTrie
 {
 public:
@@ -38,7 +48,8 @@ public:
     Node * lookup(uint64_t number);
     void insert(uint64_t number);
     void remove(uint64_t number);
-    void print();
+    void print(); // print all levels
+    void print_contents(); // just print last level
 };
 
 void XFastTrie::print()
@@ -55,6 +66,20 @@ void XFastTrie::print()
         cout << "]" << endl;
     }
     cout << " -----------------------------------------------" << endl;
+}
+
+void XFastTrie::print_contents()
+{
+    cout << "content of X-fast: [";
+
+    Node * node = m_leftMost;
+    while (node != nullptr)
+    {
+        cout << node->key << ", ";
+        node = node->right;
+    }
+
+    cout << "]" << endl;
 }
 
 Node * XFastTrie::lookup(uint64_t number)
@@ -315,6 +340,206 @@ void XFastTrie::insert(uint64_t number)
     }
 }
 
+/////////////////////////////////////////////////////////////////////
+///
+///                     Balanced BST
+///
+/////////////////////////////////////////////////////////////////////
+
+class BST
+{
+public:
+    map<uint64_t, Node*> tree;
+
+    void insert(uint64_t number) {
+        tree[number] = new Node;
+        tree[number]->key = number;
+    }
+
+    void insert(Node* node)
+    {
+        tree[node->key] = node;
+    }
+
+    Node * successor(uint64_t number)
+    {
+        auto tmp = tree.lower_bound(number);
+        if (tmp == tree.end())
+            return nullptr;
+        else
+            return tmp->second;
+    }
+
+    Node * lookup(uint64_t number)
+    {
+        auto it = tree.find(number);
+        if (it == tree.end())
+        {
+            return nullptr;
+        }
+        return it->second;
+    }
+};
+
+/////////////////////////////////////////////////////////////////////
+///
+///                     Y-Fast Trie
+///
+/////////////////////////////////////////////////////////////////////
+
+const int SMALLEST_BST_SIZE = NUMBER_OF_BITS / 2;
+const int LARGEST_BST_SIZE = NUMBER_OF_BITS * 2;
+//const int LARGEST_BST_SIZE = 8;
+const uint64_t MAX_VALUE = UINT64_MAX;
+
+class YFastTrie
+{
+public:
+    XFastTrie m_xfast;
+    unordered_map<uint64_t, BST*> m_bst;
+
+    YFastTrie();
+    Node * successor(uint64_t number);
+    Node * predecessor(uint64_t number);
+    Node * lookup(uint64_t number);
+    void insert(uint64_t number);
+    void remove(uint64_t number);
+    void print();
+};
+
+YFastTrie::YFastTrie()
+{
+    m_xfast = XFastTrie();
+}
+
+Node * YFastTrie::lookup(uint64_t number)
+{
+    Node * succ = m_xfast.successor(number);
+    if (succ)
+    {
+        BST * tree = m_bst[succ->key];
+        return tree->lookup(number);
+    }
+    return nullptr;
+}
+
+Node * YFastTrie::successor(uint64_t number)
+{
+    Node * succ = m_xfast.successor(number);
+
+    if (succ)
+    {
+        BST * tree = m_bst[succ->key];
+        return tree->successor(number);
+    }
+
+    return nullptr;
+}
+
+void YFastTrie::insert(uint64_t number)
+{
+    // Don't add duplicate numbers
+    if (lookup(number) != nullptr)
+    {
+        return;
+    }
+
+    // if first insert
+    if (m_xfast.m_root == nullptr)
+    {
+        BST * tree = new BST;
+        tree->insert(number);
+        m_bst[MAX_VALUE] = tree;
+        m_xfast.insert(MAX_VALUE);
+    }
+
+    // find successor 
+    Node * succ = m_xfast.successor(number);
+
+    // get the tree corresponding to succ
+    BST * tree = m_bst[succ->key];
+
+    // insert into tree
+    tree->insert(number);
+
+    // Split tree if >= 2*log(M)
+    if (tree->tree.size() >= LARGEST_BST_SIZE)
+    {
+        int size = tree->tree.size() / 2;
+
+        // put first half in its own tree
+        auto it = tree->tree.begin();
+
+        BST * firstHalfBst = new BST;
+        BST * secondHalfBst = new BST;
+        uint64_t firstHalfKey = 0; // largest value in the first half
+
+        for (int i=0 ; i < size ; i++)
+        {
+            firstHalfBst->insert(it->second);
+            if (i == size -1)
+            {
+                firstHalfKey = it->first;
+            }
+            ++it;
+        }
+
+        while (it != tree->tree.end())
+        {
+            secondHalfBst->insert(it->second);
+            ++it;
+        }
+
+        // delete original tree
+        delete tree;
+
+        // The largest key points to the second half tree
+        m_bst[succ->key] = secondHalfBst;
+
+        // The largest value of first half tree points to first half tree
+        m_bst[firstHalfKey] = firstHalfBst;
+
+        // Add first Half's key to X-fast trie
+        m_xfast.insert(firstHalfKey);
+    }
+}
+
+void YFastTrie::print()
+{
+    m_xfast.print_contents();
+    for (auto pair : m_bst)
+    {
+        cout << " BST under " << pair.first << ": [ ";
+        BST * bst = pair.second;
+        for (auto second_pair : bst->tree)
+        {
+            cout << second_pair.second->key << ", ";
+        }
+        cout << "]" << endl;
+    }
+}
+
+
+/////////////////////////////////////////////////////////////////////
+///
+///                     TEST CODE
+///
+/////////////////////////////////////////////////////////////////////
+///
+
+void test_yfast()
+{
+    YFastTrie trie;
+
+    for (int i = 0; i < 100; i ++)
+    {
+        int r = rand() % 128;
+        trie.insert(r);
+    }
+    
+    trie.print();
+}
+
 void test_successor(XFastTrie & trie)
 {
     for (int i = 0; i < 16; i++)
@@ -333,7 +558,8 @@ void test_successor(XFastTrie & trie)
 
 void test_successor()
 {
-    XFastTrie trie;
+    YFastTrie trie;
+    // XFastTrie trie;
 
     int array[100];
 
@@ -428,14 +654,34 @@ void test_64bit_xfast(int N)
     printf("%i successor operations on X-fast trie takes: %.2fs\n", N, (double)(clock() - tStart) / CLOCKS_PER_SEC);
 }
 
-void test_64bit_bst(int N)
+void test_64bit_yfast(int N)
 {
-    map<uint64_t, Node*> bst;
+    YFastTrie trie;
 
     clock_t tStart = clock();
     for (int i = 0; i<N; i++)
     {
-        bst[rand64()] = nullptr;
+        trie.insert(rand64());
+    }
+    printf("Inserting %i numbers into Y-fast trie takes: %.2fs\n", N, (double)(clock() - tStart) / CLOCKS_PER_SEC);
+
+    tStart = clock();
+    for (int i = 0; i < N; i++)
+    {
+        uint64_t r = rand64();
+        Node* s = trie.successor(r);
+    }
+    printf("%i successor operations on Y-fast trie takes: %.2fs\n", N, (double)(clock() - tStart) / CLOCKS_PER_SEC);
+}
+
+void test_64bit_bst(int N)
+{
+    BST bst;
+
+    clock_t tStart = clock();
+    for (int i = 0; i<N; i++)
+    {
+        bst.insert(rand64());
     }
     printf("Inserting %i numbers into BST takes: %.2fs\n", N, (double)(clock() - tStart) / CLOCKS_PER_SEC);
 
@@ -443,14 +689,17 @@ void test_64bit_bst(int N)
     for (int i = 0; i < N; i++)
     {
         uint64_t r = rand64();
-        auto s = bst.lower_bound(r);
+        Node* s = bst.successor(r);
     }
     printf("%i successor operations on BST takes: %.2fs\n", N, (double)(clock() - tStart) / CLOCKS_PER_SEC);
 }
 
 int main() {
-    
-    test_64bit_bst(100000);
-    test_64bit_xfast(100000);
+    int N = 100000;
+    test_64bit_bst(N);
+    test_64bit_xfast(N);
+    test_64bit_yfast(N);
+    // test_yfast();
+    //test_successor();
     return 0;
 }
