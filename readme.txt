@@ -1,3 +1,5 @@
+If you want to see the figure:
+
 How to compile the code:
 	module load gcc
 	g++ Source.cpp
