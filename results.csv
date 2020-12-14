@@ -1,4 +1,3 @@
-timer
 N, xtrie_insert_time, ytrie_insert_time, bst_insert_time, xtrie_succ_time, ytrie_succ_time, bst_succ_time
 1024, 0.02, 0, 0, 0, 0, 0
 2048, 0.06, 0.01, 0, 0, 0, 0.01
