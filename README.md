@@ -122,5 +122,16 @@ For the Y-fast Trie, there is only one BST and one value in the X-Fast Trie beca
 
 For the X-Fast Trie, note that there are 64 levels because we use 64 bit integers. All the top levels are empty because we use small integers. Small integers have a lot of zeros in front. 
 
-*Important*: X-Fast Tries only staor data in the bottom level (level 64). The other levels store auxiliary information.
+*Important*: X-Fast Tries only store data in the bottom level (level 64). The other levels store auxiliary information.
 
+## Timing Comparison
+
+execute the following to generate timing comparison between the Y-fast trie, X-fast trie, and BST:
+
+```
+./trees timer
+```
+
+This produces the results in file ```results.csv```
+
+For every value of $N$, 
