@@ -1,6 +1,6 @@
 # EC504-Project
 
-Run the make file to generate executable called trees.
+Run the make file to generate executable called <code>trees<code/>.
 
 This executable can do two things:
 
