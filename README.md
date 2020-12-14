@@ -7,7 +7,7 @@ This executable can do two things:
 1. test/demo insertion and successor opertaions on an x-fast and y-fast tries. 
 2. Compare run time between x-fast and y-fast tries and BSTs.
 
-# Insertion and Successor Demo
+## Insertion and Successor Demo
 
 Included in this repo are two text files. 
 
