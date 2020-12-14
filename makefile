@@ -3,7 +3,7 @@
 #============================================================
 TARGET	=  trees
 
-C_SOURCES =  Source.cpp
+C_SOURCES =  trees.cpp
 C_OBJS     = trees.o
 MY_INCLUDES =
 
