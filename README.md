@@ -138,4 +138,6 @@ For every value of N and every data structure, we insert N integers and perform 
 
 The timings are outputted in csv format.
 
-*Note* When plotting, divide by N to get average operation time. Times in seconds.
+*Note:* When plotting, divide by N to get average operation time. 
+
+Times are in seconds.
