@@ -134,4 +134,8 @@ execute the following to generate timing comparison between the Y-fast trie, X-f
 
 This produces the results in file ```results.csv```
 
-For every value of $N$, 
+For every value of N and every data structure, we insert N integers and perform N successor operations. 
+
+The timings are outputted in csv format.
+
+*Note* When plotting, divide by N to get average operation time. Times in seconds.
