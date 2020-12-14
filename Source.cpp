@@ -9,6 +9,8 @@
 #include <assert.h>
 #include <algorithm>
 #include <time.h>
+#include <fstream>
+#include <string>
 
 using namespace std;
 
@@ -43,6 +45,8 @@ public:
     Node * m_rightMost;
 
     XFastTrie();
+    ~XFastTrie();
+
     Node * successor(uint64_t number);
     Node * predecessor(uint64_t number);
     Node * lookup(uint64_t number);
@@ -98,6 +102,17 @@ XFastTrie::XFastTrie()
     m_leftMost = nullptr;
     m_rightMost = nullptr;
     m_numberOfLevels = NUMBER_OF_BITS;
+}
+
+XFastTrie::~XFastTrie()
+{
+    for (int level=0 ; level <= m_numberOfLevels ; level++)
+    {
+        for (auto pair : m_hashTables[level])
+        {
+            delete pair.second;
+        }
+    }
 }
 
 Node * XFastTrie::successor(uint64_t number)
@@ -399,6 +414,7 @@ public:
     unordered_map<uint64_t, BST*> m_bst;
 
     YFastTrie();
+    ~YFastTrie();
     Node * successor(uint64_t number);
     Node * predecessor(uint64_t number);
     Node * lookup(uint64_t number);
@@ -410,6 +426,14 @@ public:
 YFastTrie::YFastTrie()
 {
     m_xfast = XFastTrie();
+}
+
+YFastTrie::~YFastTrie()
+{
+    for (auto pair : m_bst)
+    {
+        delete pair.second;
+    }
 }
 
 Node * YFastTrie::lookup(uint64_t number)
@@ -465,7 +489,7 @@ void YFastTrie::insert(uint64_t number)
     // Split tree if >= 2*log(M)
     if (tree->tree.size() >= LARGEST_BST_SIZE)
     {
-        int size = tree->tree.size() / 2;
+        size_t size = tree->tree.size() / 2;
 
         // put first half in its own tree
         auto it = tree->tree.begin();
@@ -694,12 +718,188 @@ void test_64bit_bst(int N)
     printf("%i successor operations on BST takes: %.2fs\n", N, (double)(clock() - tStart) / CLOCKS_PER_SEC);
 }
 
-int main() {
-    int N = 100000;
-    test_64bit_bst(N);
-    test_64bit_xfast(N);
-    test_64bit_yfast(N);
-    // test_yfast();
-    //test_successor();
+void batch_time()
+{
+    cout << "N, xtrie_insert_time" << ", " << "ytrie_insert_time" << ", " << "bst_insert_time" << ", "
+        << "xtrie_succ_time" << ", " << "ytrie_succ_time" << ", " << "bst_succ_time" << endl;
+    for (int N = 1024 ; N < 9999999999 ; N = N*2)
+    {
+        double xtrie_insert_time{ 0 }, ytrie_insert_time{ 0 }, bst_insert_time{0};
+        double xtrie_succ_time{ 0 }, ytrie_succ_time{ 0 }, bst_succ_time{0};
+        clock_t tStart;
+
+        if (N <= 65536)
+        {
+            XFastTrie xtrie;
+
+            tStart = clock();
+            for (int i = 0; i < N; i++)
+            {
+                xtrie.insert(rand64());
+            }
+            xtrie_insert_time = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+
+            tStart = clock();
+            for (int i = 0; i < N; i++)
+            {
+                uint64_t r = rand64();
+                Node* s = xtrie.successor(r);
+            }
+            xtrie_succ_time = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+        }
+
+        if (N <= 1048576)
+        {
+            YFastTrie ytrie;
+
+            tStart = clock();
+            for (int i = 0; i < N; i++)
+            {
+                ytrie.insert(rand64());
+            }
+            ytrie_insert_time = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+
+            tStart = clock();
+            for (int i = 0; i < N; i++)
+            {
+                uint64_t r = rand64();
+                Node* s = ytrie.successor(r);
+            }
+            ytrie_succ_time = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+        }
+
+        BST bst;
+
+        tStart = clock();
+        for (int i = 0; i < N; i++)
+        {
+            bst.insert(rand64());
+        }
+        bst_insert_time = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+
+        tStart = clock();
+        for (int i = 0; i < N; i++)
+        {
+            uint64_t r = rand64();
+            Node* s = bst.successor(r);
+        }
+        bst_succ_time = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+        cout << N << ", " << xtrie_insert_time << ", " << ytrie_insert_time << ", " << bst_insert_time << ", "
+            << xtrie_succ_time << ", " << ytrie_succ_time << ", " << bst_succ_time << endl;
+    }
+}
+
+int main(int argc, char **argv) {
+    if (argc > 1)
+    {
+        std::string mode = argv[1];
+
+        cout << mode << endl;
+
+        if (mode == "demo" && argc > 2)
+        {
+            int M = 0;
+            uint64_t * successor_array = nullptr;
+            if (argc > 3)
+            {
+                ifstream successor_file;
+                successor_file.open(argv[3]);
+                successor_file >> M;
+                successor_array = new uint64_t[M];
+                for (int i = 0; i<M; i++)
+                {
+                    successor_file >> successor_array[i];
+                }
+
+                sort(successor_array, successor_array + M);
+            }
+            ifstream ifs;
+            ifs.open(argv[2]);
+            int N = 0;
+            uint64_t * v;
+            ifs >> N;
+            v = new uint64_t[N];
+            for (int i = 0; i<N; i++)
+            {
+                ifs >> v[i];
+            }
+
+            sort(v, v + N);
+
+            cout << "Inserting following numbers: [";
+            for (int i = 0; i<N; i++)
+            {
+                cout << v[i] << ", ";
+            }
+            cout << "]" << endl;
+            cout << " -----------------------------------------------" << endl;
+
+            {
+                YFastTrie trie;
+
+                for (int i = 0; i < N; i++)
+                {
+                    trie.insert(v[i]);
+                }
+
+                cout << "Resulting Y-fast trie: " << endl;
+                trie.print();
+                cout << " -----------------------------------------------" << endl;
+
+                if (successor_array)
+                {
+                    for (int i = 0; i < M; i++)
+                    {
+                        uint64_t s = trie.successor(successor_array[i])->key;
+
+                        cout << "successor of " << successor_array[i] << " is " << s << endl;
+                    }
+                    cout << " -----------------------------------------------" << endl;
+                }
+            }
+
+            {
+                XFastTrie trie;
+
+                for (int i = 0; i < N; i++)
+                {
+                    trie.insert(v[i]);
+                }
+
+                cout << "Resulting X-fast trie: " << endl;
+                trie.print();
+                cout << " -----------------------------------------------" << endl;
+
+                if (successor_array)
+                {
+                    for (int i = 0; i < M; i++)
+                    {
+                        uint64_t s = trie.successor(successor_array[i])->key;
+
+                        cout << "successor of " << successor_array[i] << " is " << s << endl;
+                    }
+                    cout << " -----------------------------------------------" << endl;
+                }
+            }
+
+            delete[] v;
+            delete[] successor_array;
+        }
+        else
+        {
+            if (argc > 2)
+            {
+                int N = stoi(argv[2]);
+                test_64bit_bst(N);
+                test_64bit_xfast(N);
+                test_64bit_yfast(N);
+            }
+            else
+            {
+                batch_time();
+            }
+        }
+    }
+
     return 0;
 }
