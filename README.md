@@ -11,9 +11,9 @@ This executable can do two things:
 
 Included in this repo are two text files. 
 
-numbers.txt includes a list of numbers to insert into the tries.
+```numbers.txt``` includes a list of numbers to insert into the tries.
 
-successor.txt includes a list of numbers we want to call sucessor operation on after the insetions.
+```successor.txt``` includes a list of numbers we want to call sucessor operation on after the insetions.
 
 execute:
 
